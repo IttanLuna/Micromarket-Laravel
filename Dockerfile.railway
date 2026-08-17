@@ -29,20 +29,23 @@ COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/railway/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Copy Laravel application
-COPY src/ /var/www/
+# Copy Laravel application - copy composer files first for better caching
+COPY src/composer.json src/composer.lock ./
 
 # Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction || true
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
-# Setup .env if not exists
-RUN if [ ! -f ".env" ]; then cp .env.example .env; fi
+# Copy the rest of the application
+COPY src/ .
 
-# Generate application key
-RUN php artisan key:generate --force || true
+# Run post-install scripts
+RUN composer dump-autoload --optimize
+
+# Setup .env
+RUN cp .env.example .env && php artisan key:generate --force
 
 # Fix permissions
-RUN chmod -R 777 storage bootstrap/cache || true
+RUN chmod -R 777 storage bootstrap/cache
 
 EXPOSE 8080
 
