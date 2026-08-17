@@ -3,11 +3,8 @@ set -e
 
 echo "Starting MicroMarket..."
 
-# Install PHP dependencies if vendor doesn't exist
-if [ ! -d "vendor" ]; then
-    echo "Installing dependencies..."
-    composer install --no-dev --optimize-autoloader --no-interaction
-fi
+# Fix permissions
+chmod -R 777 storage bootstrap/cache
 
 # Setup .env if not exists
 if [ ! -f ".env" ]; then
@@ -62,9 +59,6 @@ fi
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
-
-# Fix permissions
-chmod -R 777 storage bootstrap/cache
 
 echo "MicroMarket started successfully!"
 

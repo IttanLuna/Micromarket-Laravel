@@ -29,6 +29,21 @@ COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/railway/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+# Copy Laravel application
+COPY src/ /var/www/
+
+# Install PHP dependencies
+RUN composer install --no-dev --optimize-autoloader --no-interaction || true
+
+# Setup .env if not exists
+RUN if [ ! -f ".env" ]; then cp .env.example .env; fi
+
+# Generate application key
+RUN php artisan key:generate --force || true
+
+# Fix permissions
+RUN chmod -R 777 storage bootstrap/cache || true
+
 EXPOSE 8080
 
 ENTRYPOINT ["/entrypoint.sh"]
