@@ -5,22 +5,73 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Nueva Venta - MicroMarket</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+        .btn-hover {
+            transition: all 0.3s ease;
+        }
+        .btn-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        .input-focus {
+            transition: all 0.3s ease;
+        }
+        .input-focus:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(59,130,246,0.25);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        nav a {
+            position: relative;
+        }
+        nav a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: white;
+            transition: width 0.3s ease;
+        }
+        nav a:hover::after {
+            width: 100%;
+        }
+    </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gradient-to-r from-gray-100 via-blue-50 to-gray-100">
     <div class="min-h-screen">
-        <!-- Header -->
         <header class="bg-blue-600 text-white shadow-lg">
             <div class="max-w-7xl mx-auto px-4 py-4">
                 <div class="flex justify-between items-center">
                     <h1 class="text-2xl font-bold">MicroMarket</h1>
                     <div class="flex items-center space-x-4">
                         <span class="text-sm">{{ Auth::user()->name ?? 'Invitado' }}</span>
+                        <span class="bg-blue-500 px-3 py-1 rounded text-xs">{{ ucfirst(Auth::user()->role ?? '') }}</span>
+                        <form action="{{ route('logout') }}" method="POST" class="inline">
+                            @csrf
+                            <button type="submit" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-xs btn-hover">
+                                Salir
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
         </header>
 
-        <!-- Navigation -->
         <nav class="bg-blue-700 text-white">
             <div class="max-w-7xl mx-auto px-4">
                 <div class="flex space-x-6 py-3">
@@ -34,12 +85,12 @@
             </div>
         </nav>
 
-        <!-- Main Content -->
-        <main class="max-w-7xl mx-auto px-4 py-8">
+        <main class="max-w-7xl mx-auto px-4 py-8 animate-fade-in-up">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-3xl font-bold text-gray-800">Nueva Venta</h2>
-                <a href="{{ route('ventas.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
-                    ← Volver
+                <a href="{{ route('ventas.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded btn-hover flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    Volver
                 </a>
             </div>
 
@@ -52,13 +103,12 @@
             <form action="{{ route('ventas.store') }}" method="POST" id="ventaForm">
                 @csrf
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Cliente -->
-                    <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="bg-white rounded-lg shadow-md p-6 card-hover">
                         <h3 class="text-lg font-bold text-gray-800 mb-4">Datos del Cliente</h3>
                         <div class="mb-4">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Cliente *</label>
                             <select name="cliente_id" required
-                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 input-focus">
                                 <option value="">Seleccionar cliente...</option>
                                 @foreach($clientes as $cliente)
                                 <option value="{{ $cliente->id }}" {{ old('cliente_id') == $cliente->id ? 'selected' : '' }}>
@@ -72,13 +122,12 @@
                         </div>
                     </div>
 
-                    <!-- Pago -->
-                    <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="bg-white rounded-lg shadow-md p-6 card-hover">
                         <h3 class="text-lg font-bold text-gray-800 mb-4">Datos de Pago</h3>
                         <div class="mb-4">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Método de Pago *</label>
                             <select name="metodo_pago" required
-                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 input-focus">
                                 <option value="efectivo" {{ old('metodo_pago') == 'efectivo' ? 'selected' : '' }}>Efectivo</option>
                                 <option value="tarjeta" {{ old('metodo_pago') == 'tarjeta' ? 'selected' : '' }}>Tarjeta</option>
                                 <option value="transferencia" {{ old('metodo_pago') == 'transferencia' ? 'selected' : '' }}>Transferencia</option>
@@ -87,23 +136,22 @@
                         <div class="mb-4" id="montoEntregadoDiv">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Monto Entregado *</label>
                             <input type="number" name="monto_entregado" step="0.01" min="0" value="{{ old('monto_entregado') }}"
-                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 input-focus">
                         </div>
                     </div>
                 </div>
 
-                <!-- Productos -->
-                <div class="bg-white rounded-lg shadow-md p-6 mt-6">
+                <div class="bg-white rounded-lg shadow-md p-6 mt-6 card-hover">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-bold text-gray-800">Productos</h3>
                         <button type="button" onclick="agregarProducto()"
-                            class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
-                            + Agregar Producto
+                            class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded btn-hover flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            Agregar Producto
                         </button>
                     </div>
 
                     <div id="productosContainer">
-                        <!-- Productos se agregarán aquí -->
                     </div>
 
                     <div class="border-t mt-4 pt-4">
@@ -124,7 +172,8 @@
 
                 <div class="mt-6 flex justify-end">
                     <button type="submit"
-                        class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-lg text-lg">
+                        class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-lg text-lg btn-hover flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                         Registrar Venta
                     </button>
                 </div>
@@ -203,7 +252,6 @@
             document.getElementById('total').textContent = `Bs. ${total.toFixed(2)}`;
         }
 
-        // Agregar primer producto
         agregarProducto();
     </script>
 </body>

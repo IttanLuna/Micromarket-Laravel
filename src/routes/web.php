@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\{
     AuthController,
+    DashboardController,
     DocumentController,
     VentaController,
     ProductoController,
@@ -21,9 +22,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // Rutas protegidas por autenticación
 Route::middleware('auth')->group(function () {
     // Dashboard
-    Route::get('/', function () {
-        return view('dashboard');
-    })->name('home');
+    Route::get('/', [DashboardController::class, 'index'])->name('home');
+    Route::get('/dashboard/ventas-mensuales', [DashboardController::class, 'ventasMensuales'])->name('dashboard.ventas-mensuales');
 
     // Rutas para documentos
     Route::prefix('documentos')->name('documentos.')->group(function () {
