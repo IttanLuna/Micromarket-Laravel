@@ -171,3 +171,38 @@ micromarket/
 - **Docker**: Todos los comandos deben ejecutarse con `docker compose exec app` porque PHP no está instalado nativamente
 - **Testing**: Siempre escribir tests después de implementar funcionalidad
 - **Documentación**: Mantener AGENTS.md actualizado con nuevos agentes o skills
+
+## Estado del Deploy en Railway (sesión 2026-08-20/21)
+
+**URL**: https://micromarket-laravel-production.up.railway.app/
+
+### Lo que se logró
+- Deploy de Laravel funcionando en Railway con `Dockerfile.railway` (php:8.4-cli + `php artisan serve`).
+- Entrypoint (`docker/railway/entrypoint.sh`): servidor arriba PRIMERO (healthcheck pasa al instante),
+  luego `migrate --force` con 40 reintentos, seed solo si no hay usuarios, `storage:link`, `wait` final.
+- Migraciones y seed ejecutados exitosamente en la BD de Railway. Healthcheck `/up` pasa OK.
+- Variables esperadas en el servicio de app: `DB_URL=${{MySQL.MYSQL_URL}}` (con guion bajo) y `PORT=8080`.
+
+### Problema pendiente (donde nos quedamos)
+- `/up` responde 200 pero **todas las demás rutas dan 500** (página genérica "Server Error" de Laravel).
+- **No hay excepción en los logs de Railway** → sospecha: los errores se escriben a
+  `storage/logs/laravel.log` dentro del contenedor porque `LOG_CHANNEL=stderr` no está llegando al proceso.
+- Las variables agregadas desde el panel (`APP_DEBUG=true`, `LOG_CHANNEL=stderr`) **no se aplicaron**
+  (posiblemente se agregaron al servicio equivocado o el redeploy no se disparó).
+- Último commit `9ab16c4` fuerza `APP_DEBUG=true` y `APP_ENV=local` desde el entrypoint (TEMPORAL),
+  pero Railway NO redesplegó automáticamente → posible webhook de GitHub roto.
+
+### Próximos pasos
+1. En Railway → servicio app → Deployments: verificar si llegó el commit `9ab16c4`.
+   Si no, hacer **Redeploy** manual.
+2. Con el deploy nuevo, abrir `/login`: debe mostrar el stack trace completo → identificar causa raíz.
+3. Arreglar la causa, QUITAR las líneas temporales `APP_DEBUG`/`APP_ENV` del entrypoint y pushear.
+4. Verificar que las variables del panel estén en el servicio CORRECTO (el de la app, no MySQL):
+   `DB_URL=${{MySQL.MYSQL_URL}}`, `PORT=8080`, `APP_DEBUG=false` en producción.
+
+### Lecciones aprendidas (deploy)
+- Patrón entrypoint: servidor en background primero, migraciones después con reintentos.
+- Healthcheck: usar `/up` (no toca BD ni sesión); nunca rutas con auth.
+- Antes de commit/push: `git fetch` y comparar con origin/main (repo multi-sesión).
+- PowerShell: `$env:GIT_EDITOR='true'; git rebase --continue` para evitar vim interactivo.
+- La variable de Railway para MySQL es `MYSQL_URL` (no `MYSQLURL`).
