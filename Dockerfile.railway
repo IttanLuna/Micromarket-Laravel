@@ -18,10 +18,15 @@ COPY src/ .
 
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
+# Setup .env (las credenciales reales llegan como variables de entorno en runtime)
 RUN cp .env.example .env && php artisan key:generate --force
 
 RUN chmod -R 777 storage bootstrap/cache
 
-EXPOSE ${PORT:-8080}
+# Entrypoint: migra, siembra y arranca el servidor
+COPY docker/railway/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-CMD ["sh", "-c", "php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]
+EXPOSE 8080
+
+ENTRYPOINT ["/bin/bash", "/entrypoint.sh"]

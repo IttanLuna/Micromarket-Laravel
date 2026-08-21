@@ -1,52 +1,33 @@
 #!/bin/bash
 set -e
 
-echo "Starting MicroMarket..."
+echo "== MicroMarket: iniciando contenedor =="
 
-# Fix permissions
-chmod -R 777 storage bootstrap/cache
+# Logs visibles en el dashboard de Railway
+export LOG_CHANNEL="${LOG_CHANNEL:-stderr}"
 
-# Update .env with Railway database variables if available
-if [ -n "$MYSQL_URL" ]; then
-    echo "Configuring database from MYSQL_URL..."
-    DB_HOST=$(echo $MYSQL_URL | sed -n 's|.*@\([^:]*\):\([0-9]*\)/.*|\1|p')
-    DB_PORT=$(echo $MYSQL_URL | sed -n 's|.*@\([^:]*\):\([0-9]*\)/.*|\2|p')
-    DB_DATABASE=$(echo $MYSQL_URL | sed -n 's|.*/\([^?]*\).*|\1|p')
-    DB_USERNAME=$(echo $MYSQL_URL | sed -n 's|.*://\([^:]*\):.*|\1|p')
-    DB_PASSWORD=$(echo $MYSQL_URL | sed -n 's|.*://[^:]*:\([^@]*\)@.*|\1|p')
+# Esperar a que la base de datos este lista y ejecutar migraciones
+attempt=1
+until php artisan migrate --force; do
+    if [ "$attempt" -ge 20 ]; then
+        echo "ERROR: la base de datos no esta disponible. Revisa DB_URL o las variables DB_* en Railway."
+        exit 1
+    fi
+    echo "Base de datos no lista (intento $attempt/20), reintentando en 3s..."
+    attempt=$((attempt+1))
+    sleep 3
+done
 
-    sed -i "s|DB_HOST=.*|DB_HOST=$DB_HOST|g" .env
-    sed -i "s|DB_PORT=.*|DB_PORT=$DB_PORT|g" .env
-    sed -i "s|DB_DATABASE=.*|DB_DATABASE=$DB_DATABASE|g" .env
-    sed -i "s|DB_USERNAME=.*|DB_USERNAME=$DB_USERNAME|g" .env
-    sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=$DB_PASSWORD|g" .env
-    sed -i "s|DB_CONNECTION=.*|DB_CONNECTION=mysql|g" .env
-fi
-
-if [ -n "$DB_HOST" ] && [ -z "$MYSQL_URL" ]; then
-    sed -i "s|DB_HOST=.*|DB_HOST=$DB_HOST|g" .env
-    sed -i "s|DB_PORT=.*|DB_PORT=${DB_PORT:-3306}|g" .env
-    sed -i "s|DB_DATABASE=.*|DB_DATABASE=$DB_DATABASE|g" .env
-    sed -i "s|DB_USERNAME=.*|DB_USERNAME=$DB_USERNAME|g" .env
-    sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=$DB_PASSWORD|g" .env
-    sed -i "s|DB_CONNECTION=.*|DB_CONNECTION=mysql|g" .env
-fi
-
-# Cache config
-php artisan config:cache
-
-# Run migrations
-echo "Running migrations..."
-php artisan migrate --force
-
-# Seed database (only on first run)
-if [ ! -f ".seeded" ]; then
-    echo "Seeding database..."
+# Poblar la base de datos solo si esta vacia (seguro en redeploys)
+if php -r 'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); exit((int) (\App\Models\User::count() > 0));'; then
+    echo "== Poblando base de datos (primera vez) =="
     php artisan db:seed --force
-    touch .seeded
+else
+    echo "== Base de datos ya contiene usuarios, se omite el seed =="
 fi
 
-echo "MicroMarket started successfully!"
+# Link de storage (best-effort)
+php artisan storage:link >/dev/null 2>&1 || true
 
-# Start supervisor
-exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+echo "== MicroMarket listo en puerto ${PORT:-8080} =="
+exec php artisan serve --host=0.0.0.0 --port="${PORT:-8080}"
