@@ -6,14 +6,21 @@ echo "== MicroMarket: iniciando contenedor =="
 # Logs visibles en el dashboard de Railway
 export LOG_CHANNEL="${LOG_CHANNEL:-stderr}"
 
+# Arrancar el servidor de inmediato (en background) para que el
+# healthcheck de Railway (/up) reciba 200 sin esperar migraciones
+php artisan serve --host=0.0.0.0 --port="${PORT:-8080}" &
+SERVER_PID=$!
+
 # Esperar a que la base de datos este lista y ejecutar migraciones
 attempt=1
 until php artisan migrate --force; do
-    if [ "$attempt" -ge 20 ]; then
-        echo "ERROR: la base de datos no esta disponible. Revisa DB_URL o las variables DB_* en Railway."
+    if [ "$attempt" -ge 40 ]; then
+        echo "ERROR: la base de datos no esta disponible tras 2 minutos."
+        echo "Revisa que agregaste la variable DB_URL (o DB_HOST/DB_PORT/DB_DATABASE/DB_USERNAME/DB_PASSWORD) en Railway."
+        kill "$SERVER_PID" 2>/dev/null || true
         exit 1
     fi
-    echo "Base de datos no lista (intento $attempt/20), reintentando en 3s..."
+    echo "Base de datos no lista (intento $attempt/40), reintentando en 3s..."
     attempt=$((attempt+1))
     sleep 3
 done
@@ -30,4 +37,4 @@ fi
 php artisan storage:link >/dev/null 2>&1 || true
 
 echo "== MicroMarket listo en puerto ${PORT:-8080} =="
-exec php artisan serve --host=0.0.0.0 --port="${PORT:-8080}"
+wait "$SERVER_PID"
