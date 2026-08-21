@@ -6,6 +6,10 @@ echo "== MicroMarket: iniciando contenedor =="
 # Logs visibles en el dashboard de Railway
 export LOG_CHANNEL="${LOG_CHANNEL:-stderr}"
 
+# TEMPORAL: depuracion del error 500 - QUITAR despues de diagnosticar
+export APP_DEBUG=true
+export APP_ENV=local
+
 # Arrancar el servidor de inmediato (en background) para que el
 # healthcheck de Railway (/up) reciba 200 sin esperar migraciones
 php artisan serve --host=0.0.0.0 --port="${PORT:-8080}" &
